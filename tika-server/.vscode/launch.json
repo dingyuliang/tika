@@ -1,0 +1,22 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "type": "java",
+            "name": "Debug (Launch) - Current File",
+            "request": "launch",
+            "mainClass": "${file}"
+        },
+        {
+            "type": "java",
+            "name": "Debug (Launch)-TikaServerCli<tika-server>",
+            "request": "launch",
+            "mainClass": "org.apache.tika.server.TikaServerCli",
+            "projectName": "tika-server",
+            "args": "--host=localhost --port=9998 --includeStack -enableUnsecureFeatures -enableFileUrl -enableSkipValidatingCerts"
+        }
+    ]
+}

@@ -16,10 +16,18 @@
  */
 package org.apache.tika.server;
 
+import javax.net.ssl.HostnameVerifier;
+import javax.net.ssl.HttpsURLConnection;
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.SSLSession;
+import javax.net.ssl.TrustManager;
+import javax.net.ssl.X509TrustManager;
 import javax.ws.rs.core.HttpHeaders;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URL;
+import java.security.NoSuchAlgorithmException;
+import java.security.cert.X509Certificate;
 
 import org.apache.tika.io.TikaInputStream;
 
@@ -40,7 +48,7 @@ import org.apache.tika.io.TikaInputStream;
  *
  */
 public class URLEnabledInputStreamFactory implements InputStreamFactory {
-
+    
     @Override
     public InputStream getInputSteam(InputStream is, HttpHeaders httpHeaders) throws IOException {
         String fileUrl = httpHeaders.getHeaderString("fileUrl");
@@ -48,5 +56,36 @@ public class URLEnabledInputStreamFactory implements InputStreamFactory {
             return TikaInputStream.get(new URL(fileUrl));
         }
         return is;
+    }
+
+    public static void disableValidatingCerts(){
+        TrustManager[] trustAllCerts = new TrustManager[] {new X509TrustManager() {
+                public java.security.cert.X509Certificate[] getAcceptedIssuers() {
+                    return null;
+                }
+                public void checkClientTrusted(X509Certificate[] certs, String authType) {
+                }
+                public void checkServerTrusted(X509Certificate[] certs, String authType) {
+                }
+            }
+        };
+        
+        // Install the all-trusting trust manager
+        try {
+            SSLContext sc = SSLContext.getInstance("SSL");
+            sc.init(null, trustAllCerts, new java.security.SecureRandom()); 
+            HttpsURLConnection.setDefaultSSLSocketFactory(sc.getSocketFactory());
+        } catch (Exception e) {
+            e.printStackTrace();
+		} 
+
+        // Create all-trusting host name verifier
+        HostnameVerifier allHostsValid = new HostnameVerifier() {
+            public boolean verify(String hostname, SSLSession session) {
+                return true;
+            }
+        };
+        // Install the all-trusting host verifier
+        HttpsURLConnection.setDefaultHostnameVerifier(allHostsValid);
     }
 }

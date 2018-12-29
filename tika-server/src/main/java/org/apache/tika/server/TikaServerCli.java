@@ -20,11 +20,19 @@ package org.apache.tika.server;
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
 import java.nio.file.Paths;
+import java.security.cert.X509Certificate;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+
+import javax.net.ssl.HostnameVerifier;
+import javax.net.ssl.HttpsURLConnection;
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.SSLSession;
+import javax.net.ssl.TrustManager;
+import javax.net.ssl.X509TrustManager;
 
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.CommandLineParser;
@@ -84,6 +92,11 @@ public class TikaServerCli {
             "drive or a webpage from your intranet.  See CVE-2015-3271.\n"+
             "Please make sure you know what you are doing.";
 
+    private static final String SKIP_VALIDATING_CERTS_WARNING =
+            "WARNING: You have chosen to run tika-server with skipping validating certificates enabled.\n"+
+            "Please only use this for integration or testing environment or your private environment.\n"+
+            "Otherwise, this may cause Middle Attack.\n";
+
     private static final List<String> ONLY_IN_SPAWN_CHILD_MODE =
             Arrays.asList(new String[] { "taskTimeoutMillis", "taskPulseMillis",
             "pingTimeoutMillis", "pingPulseMillis", "maxFiles", "javaHome", "maxRestarts",
@@ -102,6 +115,7 @@ public class TikaServerCli {
         options.addOption("?", "help", false, "this help message");
         options.addOption("enableUnsecureFeatures", false, "this is required to enable fileUrl.");
         options.addOption("enableFileUrl", false, "allows user to pass in fileUrl instead of InputStream.");
+        options.addOption("enableSkipValidatingCerts", false, "allows user to skip validating certificate, only use this for integration & testing environment.");
         options.addOption("spawnChild", false, "whether or not to spawn a child process for robustness");
         options.addOption("taskTimeoutMillis", true, "Only in spawn child mode: how long to wait for a task (e.g. parse) to finish");
         options.addOption("taskPulseMillis", true, "Only in spawn child mode: how often to check if a task has timed out.");
@@ -257,8 +271,15 @@ public class TikaServerCli {
             InputStreamFactory inputStreamFactory = null;
             if (line.hasOption("enableFileUrl") &&
                     line.hasOption("enableUnsecureFeatures")) {
+
+                if(line.hasOption("enableSkipValidatingCerts")){                    
+                    URLEnabledInputStreamFactory.disableValidatingCerts();
+                    System.out.println(SKIP_VALIDATING_CERTS_WARNING);
+                }
+
                 inputStreamFactory = new URLEnabledInputStreamFactory();
                 System.out.println(FILE_URL_WARNING);
+
             } else {
                 inputStreamFactory = new DefaultInputStreamFactory();
             }
